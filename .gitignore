@@ -1,3 +1,4 @@
 frozen_inference_graph.pb
 
-data
+sample_data
+processed_data
