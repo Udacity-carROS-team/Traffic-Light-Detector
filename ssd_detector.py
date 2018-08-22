@@ -11,7 +11,11 @@ import time
 # %matplotlib inline
 
 GRAPH_FILE = './frozen_inference_graph.pb'
-BOXES_SCORE_MIN = 0.2
+BOXES_SCORE_MIN = 0.15
+
+
+def load_file_name():
+    pass
 
 
 def load_images(folders):
@@ -30,6 +34,13 @@ def load_images(folders):
         imgs.append(img)
 
     return imgs
+
+
+def load_site_images(folders):
+    # img_fns = []
+
+    # for f in folders:
+    pass
 
 
 def load_graph(graph_file):
