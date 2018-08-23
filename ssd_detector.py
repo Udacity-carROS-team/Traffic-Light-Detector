@@ -11,22 +11,20 @@ import time
 # %matplotlib inline
 
 GRAPH_FILE = './frozen_inference_graph.pb'
-BOXES_SCORE_MIN = 0.15
+BOXES_SCORE_MIN = 0.5
 
 
-def load_file_name():
-    pass
-
-
-def load_images(folders):
+def load_file_names(folders, format='png'):
     img_fns = []
 
     for f in folders:
-        file_pattern_png = './' + f + '/*.png'
-        file_pattern_jpg = './' + f + '/*.jpg'
-        img_fns.extend(glob.glob(file_pattern_png))
-        img_fns.extend(glob.glob(file_pattern_jpg))
+        file_pattern = './' + f + '/*.' + format
+        img_fns.extend(glob.glob(file_pattern))
 
+    return img_fns
+
+
+def load_images(img_fns):
     imgs = []
 
     for fn in img_fns:
@@ -34,13 +32,6 @@ def load_images(folders):
         imgs.append(img)
 
     return imgs
-
-
-def load_site_images(folders):
-    # img_fns = []
-
-    # for f in folders:
-    pass
 
 
 def load_graph(graph_file):
@@ -106,6 +97,21 @@ def draw_boxes(img, bboxes, color=(0, 0, 255), thick=3):
     return imcopy
 
 
+def process_images(images, threshold=BOXES_SCORE_MIN):
+    for image in images:
+        gbeq_image = cv2.GaussianBlur(image, (5, 5), 0)
+        boxes, scores, classes = TLDetection(gbeq_image, sess)
+        boxes, scores, classes = TLBoxes(threshold, boxes, scores, classes)
+
+        image_height = image.shape[0]
+        image_width = image.shape[1]
+        box_coordinates = TLResizeBoxes(boxes, image_height, image_width)
+
+        if len(boxes) != 0:
+            processed_image = draw_boxes(image, box_coordinates, color=(0, 0, 255), thick=3)
+            cv2.imwrite('./processed_data/file_{}.png'.format(time.time()), processed_image)
+
+
 if __name__ == '__main__':
     detection_graph = load_graph(GRAPH_FILE)
 
@@ -116,17 +122,10 @@ if __name__ == '__main__':
 
     sess = tf.Session(graph=detection_graph)
 
-    imgs = load_images(['sample_data'])
+    png_img_fns = load_file_names(['sample_data'])
+    jpg_img_fns = load_file_names(['sample_data'], format='jpg')
+    png_imgs = load_images(png_img_fns)
+    jpg_imgs = load_images(jpg_img_fns)
 
-    for image in imgs:
-        gbeq_image = cv2.GaussianBlur(image, (5, 5), 0)
-        boxes, scores, classes = TLDetection(image, sess)
-        boxes, scores, classes = TLBoxes(BOXES_SCORE_MIN, boxes, scores, classes)
-
-        image_height = image.shape[0]
-        image_width = image.shape[1]
-        box_coordinates = TLResizeBoxes(boxes, image_height, image_width)
-
-        if len(boxes) != 0:
-            processed_image = draw_boxes(image, box_coordinates, color=(0, 0, 255), thick=3)
-            cv2.imwrite('./processed_data/file_{}.png'.format(time.time()), processed_image)
+    process_images(png_imgs)
+    process_images(jpg_imgs, threshold=0.15)
