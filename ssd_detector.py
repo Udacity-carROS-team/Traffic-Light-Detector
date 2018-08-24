@@ -29,6 +29,7 @@ def load_images(img_fns):
 
     for fn in img_fns:
         img = cv2.imread(fn)
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         imgs.append(img)
 
     return imgs
@@ -98,6 +99,7 @@ def draw_boxes(img, bboxes, color=(0, 0, 255), thick=3):
 
 
 def process_images(images, threshold=BOXES_SCORE_MIN):
+    # images need to be in RGB
     for image in images:
         gbeq_image = cv2.GaussianBlur(image, (5, 5), 0)
         boxes, scores, classes = TLDetection(gbeq_image, sess)
@@ -108,6 +110,7 @@ def process_images(images, threshold=BOXES_SCORE_MIN):
         box_coordinates = TLResizeBoxes(boxes, image_height, image_width)
 
         if len(boxes) != 0:
+            image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
             processed_image = draw_boxes(image, box_coordinates, color=(0, 0, 255), thick=3)
             cv2.imwrite('./processed_data/file_{}.png'.format(time.time()), processed_image)
 
@@ -128,4 +131,4 @@ if __name__ == '__main__':
     jpg_imgs = load_images(jpg_img_fns)
 
     process_images(png_imgs)
-    process_images(jpg_imgs, threshold=0.15)
+    process_images(jpg_imgs, threshold=0.2)
