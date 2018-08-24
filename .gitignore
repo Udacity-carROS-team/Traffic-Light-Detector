@@ -1,3 +1,5 @@
 frozen_inference_graph.pb
 
 processed_data
+site_images
+labeled_site_images
