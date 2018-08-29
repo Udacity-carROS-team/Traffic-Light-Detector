@@ -3,9 +3,12 @@
 
 import glob
 import os
+import errno
 from shutil import copyfile
 import pandas as pd
 import xml.etree.ElementTree as ET
+from sklearn.model_selection import train_test_split
+from sklearn.utils import shuffle
 """
 This module is used to divide human labeled data to training and test sets.
 Before this module is used you should have xml files with the same name as the
@@ -16,24 +19,46 @@ be converted to the format that ssd model can recognize.
 """
 
 
-def collect_image(xml_folder, image_folder, format='jpg'):
-    """
-    copy corresponding images to xml folder
-    """
+def image_names(xml_path):
     xml_fns = []
 
-    file_pattern = '../' + xml_folder + '/*.xml'
+    file_pattern = xml_path + '/*.xml'
     xml_fns.extend(glob.glob(file_pattern))
 
-    image_fns = [os.path.basename(fn)[:-3] + format for fn in xml_fns]
+    return xml_fns
 
-    src = '../' + image_folder + '/'
-    dst = '../' + xml_folder + '/'
 
-    for image_fn in image_fns:
-        copyfile(src + image_fn, dst + image_fn)
+def collect_image(xml_fns, dst, image_path, format='jpg'):
+    """
+    copy xml files and corresponding images to targeted folder
 
-    return image_fns
+    Input
+    ------
+    xml_fns: a list of xml file names
+    dst: absolute path that the xml and image files are stored to
+    image_path: absolute path or relative path to project directory
+    format: image format
+    """
+    try:
+        os.makedirs(dst)
+    except OSError as e:
+        if e.errno != errno.EEXIST:
+            raise
+
+    for fn in xml_fns:
+        base_xml_fn = os.path.basename(fn)
+        base_img_fn = base_xml_fn[:-3] + format
+        copyfile(fn, dst + '/' + base_xml_fn)
+        copyfile(image_path + '/' + base_img_fn, dst + '/' + base_img_fn)
+
+
+def split_data(xml_fns, ratio=.1):
+    """
+    split data to train and test
+    """
+    shuffle(xml_fns)
+    train, test = train_test_split(xml_fns, test_size=ratio)
+    return train, test
 
 
 def xml_to_csv(path):
@@ -69,9 +94,5 @@ def save_xml_to_csv(src, dst):
     print('Successfully converted xml to csv.')
 
 
-def split_data(ratio=0.1):
-    pass
-
-
 if __name__ == '__main__':
-    # image_fns = collect_image('labeled_site_images', 'site_images')
+    print('say hello to ssd_data_handler.py')

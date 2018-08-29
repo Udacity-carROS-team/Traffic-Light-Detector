@@ -3,3 +3,9 @@ frozen_inference_graph.pb
 processed_data
 site_images
 labeled_site_images
+*.csv
+*.pyc
+data
+ssd_mobilenet_v1_coco_2017_11_17
+docs
+camera_images

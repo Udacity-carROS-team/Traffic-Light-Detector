@@ -10,6 +10,7 @@ import time
 # if you want to use Hydrogen in Atom, uncomment the following line
 # %matplotlib inline
 
+# GRAPH_FILE = './traffic_light_inference_graph/frozen_inference_graph.pb'
 GRAPH_FILE = './frozen_inference_graph.pb'
 BOXES_SCORE_MIN = 0.5
 
@@ -28,6 +29,7 @@ def load_images(img_fns):
     imgs = []
 
     for fn in img_fns:
+        print(fn)
         img = cv2.imread(fn)
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         imgs.append(img)
@@ -57,6 +59,9 @@ def TLDetection(image, sess):
     scores = np.squeeze(scores)
     classes = np.squeeze(classes)
 
+    print(scores[0:3])
+    print(classes[0:3])
+
     return boxes, scores, classes
 
 
@@ -65,13 +70,17 @@ def TLBoxes(prob, boxes, scores, classes):
     # COCO class index for TrafficLight is '10'
     n = len(boxes)
     idxs = []
+    # target = {1, 2, 3}
     for i in range(n):
-        if scores[i] >= prob and classes[i] == 10:
+        if scores[i] >= prob:
+            # if scores[i] >= prob and classes[i] in target:
             idxs.append(i)
 
     filtered_boxes = boxes[idxs, ...]
     filtered_scores = scores[idxs, ...]
     filtered_classes = classes[idxs, ...]
+    # print(filtered_classes)
+    # print()
     return filtered_boxes, filtered_scores, filtered_classes
 
 
@@ -98,6 +107,23 @@ def draw_boxes(img, bboxes, color=(0, 0, 255), thick=3):
     return imcopy
 
 
+def paste_light_state(image, light_state):
+    """
+    Return image with curvature and car offset information embedded
+
+    Input
+    -----
+    image : image to be modified
+
+    light_state : string indicates the state of traffic light, "RED", "YELLOW" or "GREEN"
+
+    """
+    font = cv2.FONT_HERSHEY_SIMPLEX
+    image = cv2.putText(image, str(light_state), (20, 40), font, 1, (255, 255, 255), 2, cv2.LINE_AA)
+
+    return image
+
+
 def process_images(images, threshold=BOXES_SCORE_MIN):
     # images need to be in RGB
     for image in images:
@@ -112,7 +138,28 @@ def process_images(images, threshold=BOXES_SCORE_MIN):
         if len(boxes) != 0:
             image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
             processed_image = draw_boxes(image, box_coordinates, color=(0, 0, 255), thick=3)
-            cv2.imwrite('./processed_data/file_{}.png'.format(time.time()), processed_image)
+            # processed_image = paste_light_state(processed_image, )
+            cv2.imwrite('./processed_sample_data/file_{}.png'.format(time.time()), processed_image)
+
+
+def TLImage_Pro(image):
+    # Image processing using openCV
+    image_hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+    #cv2.imwrite('/home/gabymoynahan/CarND-Capstone/data/processed_images/HSV_{}.png'.format(time.time()),image_hsv)
+    lower_red = np.array([0,50,50])
+    upper_red = np.array([10,255,255])
+    red1 = cv2.inRange(image_hsv, lower_red , upper_red)
+
+    lower_red = np.array([170,50,50])
+    upper_red = np.array([180,255,255])
+    red2 = cv2.inRange(image_hsv, lower_red , upper_red)
+    converted_img = cv2.addWeighted(red1, 1.0, red2, 1.0, 0.0)
+    #cv2.imwrite('/home/gabymoynahan/CarND-Capstone/data/processed_images/converted_{}.png'.format(time.time()),converted_img)
+    blur_img = cv2.GaussianBlur(converted_img,(15,15),0)
+
+    circles = cv2.HoughCircles(blur_img,cv2.HOUGH_GRADIENT,0.5,41, param1=70,param2=30,minRadius=5,maxRadius=120)
+    #cv2.imwrite('/home/gabymoynahan/CarND-Capstone/data/processed_images/circles_{}.png'.format(time.time()),circles)
+    return circles
 
 
 if __name__ == '__main__':
@@ -125,10 +172,10 @@ if __name__ == '__main__':
 
     sess = tf.Session(graph=detection_graph)
 
-    png_img_fns = load_file_names(['sample_data'])
-    jpg_img_fns = load_file_names(['sample_data'], format='jpg')
+    png_img_fns = load_file_names(['camera_images'])
+    # jpg_img_fns = load_file_names(['site_images'], format='jpg')
     png_imgs = load_images(png_img_fns)
-    jpg_imgs = load_images(jpg_img_fns)
+    # jpg_imgs = load_images(jpg_img_fns)
 
     process_images(png_imgs)
-    process_images(jpg_imgs, threshold=0.2)
+    # process_images(jpg_imgs, threshold=0.5)
